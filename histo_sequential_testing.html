@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequential Diagnostic Test Model</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-2 sm:p-4">
+    <div class="w-full space-y-4">
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="p-4 sm:p-6 border-b">
+                <h2 class="text-lg font-semibold">Sequential Diagnostic Test Model</h2>
+            </div>
+            <div class="p-4 sm:p-6">
+                <div class="bg-blue-100 p-3 sm:p-4 rounded-lg mb-4">
+                    <p id="alertText" class="text-sm text-blue-800"></p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-2">
+                    <!-- Controls Column -->
+                    <div class="space-y-4">
+                        <!-- Prior Probability with Reset Button -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-sm font-medium">
+                                    Prior Probability (Pt): <span id="PtValue">0.20</span>
+                                </label>
+                                <button onclick="resetDefaults()" 
+                                        class="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-lg">
+                                    Reset
+                                </button>
+                            </div>
+                            <input type="range" min="0" max="100" value="20" 
+                                   class="w-full h-3 mt-4" id="PtSlider"
+                                   oninput="updateParam('Pt', this.value)">
+                        </div>
+
+                        <!-- Test 1 Controls -->
+                        <div class="pt-4 border-t">
+                            <h3 class="font-medium mb-2 text-sm sm:text-base">Test 1 (default: MiraVista LFA)</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">
+                                        Sensitivity (Se): <span id="SeValue">0.92</span>
+                                    </label>
+                                    <input type="range" min="0" max="100" value="92" 
+                                           class="w-full h-3" id="SeSlider"
+                                           oninput="updateParam('Se', this.value)">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">
+                                        Specificity (Sp): <span id="SpValue">0.95</span>
+                                    </label>
+                                    <input type="range" min="0" max="100" value="95" 
+                                           class="w-full h-3" id="SpSlider"
+                                           oninput="updateParam('Sp', this.value)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Test 2 Controls -->
+                        <div class="pt-4 border-t">
+                            <h3 class="font-medium mb-2 text-sm sm:text-base">Test 2 (default: IMMY EIA)</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">
+                                        Sensitivity (Se2): <span id="Se2Value">0.91</span>
+                                    </label>
+                                    <input type="range" min="0" max="100" value="91" 
+                                           class="w-full h-3" id="Se2Slider"
+                                           oninput="updateParam('Se2', this.value)">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">
+                                        Specificity (Sp2): <span id="Sp2Value">0.96</span>
+                                    </label>
+                                    <input type="range" min="0" max="100" value="96" 
+                                           class="w-full h-3" id="Sp2Slider"
+                                           oninput="updateParam('Sp2', this.value)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Column -->
+                    <div class="space-y-4">
+                        <!-- Metric Cards -->
+                        <div class="grid grid-cols-2 gap-2 sm:gap-4">
+                            <div class="bg-white p-3 rounded-lg shadow">
+                                <h3 class="font-medium text-sm sm:text-base">Test 1 PPV</h3>
+                                <p class="text-xl sm:text-2xl font-bold" id="ppv1">0.0%</p>
+                                <p class="text-xs sm:text-sm text-gray-600" id="ppv1Sub"></p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow">
+                                <h3 class="font-medium text-sm sm:text-base">Sequential PPV</h3>
+                                <p class="text-xl sm:text-2xl font-bold" id="ppv2">0.0%</p>
+                                <p class="text-xs sm:text-sm text-gray-600">After both tests</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow">
+                                <h3 class="font-medium text-sm sm:text-base">Test 1 Positivity</h3>
+                                <p class="text-xl sm:text-2xl font-bold" id="pa1">0.0%</p>
+                                <p class="text-xs sm:text-sm text-gray-600" id="pa1Sub"></p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow">
+                                <h3 class="font-medium text-sm sm:text-base">Test 2 Positivity</h3>
+                                <p class="text-xl sm:text-2xl font-bold" id="pa2">0.0%</p>
+                                <p class="text-xs sm:text-sm text-gray-600">Of Test 1 +</p>
+                            </div>
+                        </div>
+
+                        <!-- Test Flow Chart -->
+                        <div class="h-[300px] sm:h-64 pt-4" id="testFlowChart"></div>
+                    </div>
+                </div>
+
+                <!-- Performance Charts -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div class="h-[300px] sm:h-64" id="test1Chart"></div>
+                    <div class="h-[300px] sm:h-64" id="test2Chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let params = {
+            Pt: 0.2,
+            Se: 0.92,
+            Sp: 0.95,
+            Se2: 0.91,
+            Sp2: 0.96,
+            N: 1000
+        };
+
+        function resetDefaults() {
+            params = {
+                Pt: 0.2,
+                Se: 0.92,
+                Sp: 0.95,
+                Se2: 0.91,
+                Sp2: 0.96,
+                N: 1000
+            };
+            
+            // Reset slider positions
+            document.getElementById('PtSlider').value = 20;
+            document.getElementById('SeSlider').value = 92;
+            document.getElementById('SpSlider').value = 95;
+            document.getElementById('Se2Slider').value = 91;
+            document.getElementById('Sp2Slider').value = 96;
+            
+            // Update displayed values
+            document.getElementById('PtValue').textContent = '0.20';
+            document.getElementById('SeValue').textContent = '0.92';
+            document.getElementById('SpValue').textContent = '0.95';
+            document.getElementById('Se2Value').textContent = '0.91';
+            document.getElementById('Sp2Value').textContent = '0.96';
+            
+            updateVisualizations();
+        }
+
+        function updateParam(param, value) {
+            params[param] = parseFloat(value)/100;
+            document.getElementById(`${param}Value`).textContent = 
+                params[param].toFixed(2);
+            updateVisualizations();
+        }
+
+        function computeMetrics() {
+            const { Pt, Se, Sp, Se2, Sp2, N } = params;
+            
+            const TP = Pt * Se;
+            const FP = (1 - Pt) * (1 - Sp);
+            const TN = (1 - Pt) * Sp;
+            const FN = Pt * (1 - Se);
+            const PPV = TP / (TP + FP);
+            const Pa = TP + FP;
+            const expectedPos = Math.round(Pa * N);
+            
+            const Pa2 = PPV * Se2 + (1 - PPV) * (1 - Sp2);
+            const TPpos = PPV * Se2;
+            const FPpos = (1 - PPV) * (1 - Sp2);
+            const PPV2_pos = TPpos / (TPpos + FPpos);
+            const expectedPos2 = Math.round(Pa2 * expectedPos);
+
+            return { TP, FP, TN, FN, PPV, Pa, Pa2, TPpos, FPpos, PPV2_pos, expectedPos, expectedPos2 };
+        }
+
+        function updateVisualizations() {
+            const metrics = computeMetrics();
+            
+            // Update alert text
+            document.getElementById('alertText').textContent = 
+                `Model showing sequential testing with ${params.N} samples. ` +
+                `Expected positives: Test 1 = ${metrics.expectedPos}, ` +
+                `Test 2 = ${metrics.expectedPos2} (of positive Test 1)`;
+
+            // Update metric cards
+            document.getElementById('ppv1').textContent = 
+                `${(metrics.PPV * 100).toFixed(1)}%`;
+            document.getElementById('ppv1Sub').textContent = 
+                `Of ${metrics.expectedPos} positive results`;
+            document.getElementById('ppv2').textContent = 
+                `${(metrics.PPV2_pos * 100).toFixed(1)}%`;
+            document.getElementById('pa1').textContent = 
+                `${(metrics.Pa * 100).toFixed(1)}%`;
+            document.getElementById('pa1Sub').textContent = 
+                `Expected: ${metrics.expectedPos}/${params.N}`;
+            document.getElementById('pa2').textContent = 
+                `${(metrics.Pa2 * 100).toFixed(1)}%`;
+
+            // Update Test Flow Chart
+            const flowLayout = {
+                title: 'Test Flow Visualization',
+                barmode: 'stack',
+                height: 300,
+                margin: { t: 40, b: 40, l: 40, r: 20 },
+                yaxis: { title: 'Sample Count' }
+            };
+            
+            Plotly.react('testFlowChart', [{
+                x: ['Test 1', 'Test 2'],
+                y: [params.N - metrics.expectedPos, metrics.expectedPos - metrics.expectedPos2],
+                name: 'Negative',
+                type: 'bar',
+                marker: { color: '#9E9E9E' }
+            }, {
+                x: ['Test 1', 'Test 2'],
+                y: [metrics.expectedPos, metrics.expectedPos2],
+                name: 'Positive',
+                type: 'bar',
+                marker: { color: '#4CAF50' }
+            }], flowLayout);
+
+            // Update Test Performance Charts
+            updateTestCharts(metrics);
+        }
+
+        function updateTestCharts(metrics) {
+            // Common layout settings
+            const chartLayout = {
+                height: 300,
+                margin: { t: 40, b: 40, l: 60, r: 20 },
+                yaxis: { title: 'Percentage' }
+            };
+
+            // Test 1 Performance
+            Plotly.react('test1Chart', [{
+                x: ['Positive Results', 'Negative Results'],
+                y: [metrics.TP * 100, metrics.TN * 100],
+                name: 'True Positive/Negative',
+                type: 'bar',
+                marker: { color: '#4CAF50' }
+            }, {
+                x: ['Positive Results', 'Negative Results'],
+                y: [metrics.FP * 100, metrics.FN * 100],
+                name: 'False Positive/Negative',
+                type: 'bar',
+                marker: { color: '#F44336' }
+            }], {
+                ...chartLayout,
+                title: 'Test 1 Performance',
+                barmode: 'stack'
+            });
+
+            // Test 2 Performance
+            Plotly.react('test2Chart', [{
+                x: ['Positive Results'],
+                y: [metrics.TPpos * 100],
+                name: 'True Positive',
+                type: 'bar',
+                marker: { color: '#4CAF50' }
+            }, {
+                x: ['Positive Results'],
+                y: [metrics.FPpos * 100],
+                name: 'False Positive',
+                type: 'bar',
+                marker: { color: '#F44336' }
+            }], {
+                ...chartLayout,
+                title: 'Test 2 Performance (After + Test 1)',
+                barmode: 'stack'
+            });
+        }
+
+        // Initial render
+        updateVisualizations();
+    </script>
+</body>
+</html>
