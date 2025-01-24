@@ -9,7 +9,7 @@ This repository contains scripts and models for analyzing histoplasmosis, a fung
 ## Contents
 
 - `histo_seq_testing.R`: An R script for conducting sequential testing analysis related to histoplasmosis.
-- `histo_sequential_testing.html`: An HTML file providing a detailed report on sequential testing methodologies and results.
+- `histo_sequential_testing.html`: An HTML file to simulate sequential testing results.
 - `histo_treat_model.R`: An R script for modeling treatment strategies for histoplasmosis.
 - `model_seq_pos_retested_binom.stan`: A Stan model file used for statistical analysis in the sequential testing framework.
 
