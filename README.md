@@ -1,6 +1,4 @@
-# histoplasmosis
-
-# Histoplasmosis Analysis
+# Histoplasmosis
 
 ## Overview
 
