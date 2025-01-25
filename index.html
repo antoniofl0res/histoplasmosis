@@ -130,9 +130,9 @@
     </script>
 </head>
 <body>
-    <h1>Histoplasmosis Research Repository</h1>
+    <h1>Histoplasmosis research repository</h1>
     <div class="how-to-trigger">
-        How to use this repository ▾
+        How to use this repository [▾]
         <div class="how-to-box">
             This repository contains interactive tools for analyzing histoplasmosis diagnostics.<br><br>
             • Left column: Interactive calculators with parameter controls<br>
@@ -143,7 +143,7 @@
         <div class="left-column">
             <ul>
                 <li>
-                    <a href="histo_sequential_testing.html">Sequential Testing Simulation (HTML)</a>
+                    <a href="histo_sequential_testing.html">Sequential testing simulation (HTML)</a>
                     <div class="description">
                         <p>This page is an interactive calculator for evaluating the effectiveness of two sequential medical diagnostic tests (like rapid tests followed by additional lab tests). It allows you to adjust key parameters using sliders:</p>
                         <ul>
@@ -161,7 +161,7 @@
                     </div>
                 </li>
                 <li>
-                    <a href="Stan_model_visualization.html">Model Visualization (HTML)</a>
+                    <a href="Stan_model_visualization.html">"Predicting prevalence" simulation (HTML)</a>
                     <div class="description">
                         <p>This page provides an interactive visualization to explore how sequential testing results might relate to true disease prevalence. It lets you:</p>
                         <ul>
@@ -181,10 +181,11 @@
         </div>
         <div class="right-column">
             <ul>
-                <li><a href="#" onclick="event.preventDefault(); showVisualization('histo_seq_testing.R')">Sequential Testing Model (R)</a></li>
-                <li><a href="#" onclick="event.preventDefault(); showVisualization('histo_treat_Markov_model.R')">Markov Model Treatment (R)</a></li>
-                <li><a href="#" onclick="event.preventDefault(); showVisualization('model_seq_pos_retested_binom.stan')">Stan Code Model</a></li>
+                <li><a href="#" onclick="event.preventDefault(); showVisualization('histo_seq_testing.R')">Sequential testing model (R)</a></li>
+                <li><a href="#" onclick="event.preventDefault(); showVisualization('model_seq_pos_retested_binom.stan')">Sequential testing model (Stan)</a></li>
             </ul>
+                <li><a href="#" onclick="event.preventDefault(); showVisualization('histo_treat_Markov_model.R')">Markov model - treatment (R)</a></li>
+                
             <div id="visualization-window">
                 <iframe id="viewer"></iframe>
             </div>
