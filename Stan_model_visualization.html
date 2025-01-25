@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sequential Testing Prevalence Calculator</title>
+    <title>Sequential Testing - Prevalence Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -51,6 +51,10 @@
                                 <span class="text-gray-600 text-sm ml-2">(95% CrI: <span id="ppv2Lower">0.0</span>% - <span id="ppv2Upper">0.0</span>%)</span>
                             </p>
                             <p class="text-sm text-gray-600 mt-2" id="inputSummary"></p>
+                        </div>
+                        <div id="error-messages" class="p-4 bg-red-50 rounded-lg hidden">
+                            <h3 class="font-medium mb-2 text-red-600">Validation Errors:</h3>
+                            <ul id="error-list" class="text-sm text-red-600"></ul>
                         </div>
                         <div class="flex items-start gap-2 p-4 bg-yellow-50 rounded-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-yellow-600 mt-1">
@@ -233,6 +237,26 @@
                 N2: parseInt(document.getElementById('N2').value) || 0,
                 npos2: parseInt(document.getElementById('npos2').value) || 0
             };
+
+            const errors = [];
+
+            // Validation rules
+            if (inputs.N2 > inputs.npos) {
+                errors.push("Retested positive samples (N2) cannot be greater than first test positives.");
+            }
+
+            if (inputs.npos2 > inputs.N2) {
+                errors.push("Second test positives cannot be greater than retested positive samples (N2).");
+            }
+
+            if (errors.length > 0) {
+                document.getElementById('error-messages').classList.remove('hidden');
+                document.getElementById('error-list').innerHTML = errors.map(error => `<li>${error}</li>`).join('');
+                document.getElementById('results').classList.add('hidden');
+                return;
+            } else {
+                document.getElementById('error-messages').classList.add('hidden');
+            }
 
             const results = calculatePosterior(inputs.N, inputs.npos, inputs.N2, inputs.npos2);
             
