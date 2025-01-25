@@ -111,9 +111,21 @@
         }
     </style>
     <script>
-        function showVisualization(link) {
-            document.getElementById('visualization-window').style.display = 'block';
-            document.getElementById('viewer').src = link;
+        async function showVisualization(link) {
+            try {
+                const response = await fetch(link);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const codeContent = await response.text();
+                
+                const viewer = document.getElementById('viewer');
+                const blob = new Blob([codeContent], { type: 'text/plain' });
+                viewer.src = URL.createObjectURL(blob);
+                
+                document.getElementById('visualization-window').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading file:', error);
+                alert('Error loading file: ' + error.message);
+            }
         }
     </script>
 </head>
@@ -125,7 +137,6 @@
             This repository contains interactive tools for analyzing histoplasmosis diagnostics.<br><br>
             • Left column: Interactive calculators with parameter controls<br>
             • Right column: Code visualizations (click to view)<br>
-            
         </div>
     </div>
     <nav>
@@ -170,9 +181,9 @@
         </div>
         <div class="right-column">
             <ul>
-                <li><a href="#" onclick="showVisualization('histo_seq_testing.R')">Sequential Testing Model (R)</a></li>
-                <li><a href="#" onclick="showVisualization('histo_treat_Markov_model.R')">Markov Model Treatment (R)</a></li>
-                <li><a href="#" onclick="showVisualization('model_seq_pos_retested_binom.stan')">Stan Code Model</a></li>
+                <li><a href="#" onclick="event.preventDefault(); showVisualization('histo_seq_testing.R')">Sequential Testing Model (R)</a></li>
+                <li><a href="#" onclick="event.preventDefault(); showVisualization('histo_treat_Markov_model.R')">Markov Model Treatment (R)</a></li>
+                <li><a href="#" onclick="event.preventDefault(); showVisualization('model_seq_pos_retested_binom.stan')">Stan Code Model</a></li>
             </ul>
             <div id="visualization-window">
                 <iframe id="viewer"></iframe>
