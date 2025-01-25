@@ -42,7 +42,7 @@
                             <p>Estimated Prevalence: <span id="prevalence">0.0</span>% 
                                 <span class="text-gray-600 text-sm ml-2">(95% CrI: <span id="ciLower">0.0</span>% - <span id="ciUpper">0.0</span>%)</span>
                             </p>
-                            <p class="mt-2">First Test:</p>
+                            <p class="mt-2">First test:</p>
                             <p class="ml-4">PPV: <span id="ppv1">0.0</span>%
                                 <span class="text-gray-600 text-sm ml-2">(95% CrI: <span id="ppv1Lower">0.0</span>% - <span id="ppv1Upper">0.0</span>%)</span>
                             </p>
@@ -174,13 +174,18 @@
             const ctx = document.getElementById('chart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
 
+            // Convert to Chart.js compatible format with x/y values
+            const chartData = points.map(p => ({
+                x: p.prevalence * 100,  // Convert to percentage
+                y: p.posterior
+            }));
+
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: points.map(p => (p.prevalence * 100).toFixed(1) + '%'),
                     datasets: [{
                         label: 'Posterior Probability',
-                        data: points.map(p => p.posterior),
+                        data: chartData,
                         borderColor: '#2563eb',
                         tension: 0.4,
                         pointRadius: 0
@@ -191,16 +196,29 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            title: { display: true, text: 'True Prevalence' },
-                            ticks: { callback: value => value + '%' }
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'True Prevalence (%)'
+                            },
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                callback: value => value + '%'
+                            }
                         },
-                        y: { title: { display: true, text: 'Posterior Probability' } }
+                        y: { 
+                            title: { 
+                                display: true, 
+                                text: 'Posterior Probability' 
+                            } 
+                        }
                     },
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: ctx => 'Posterior Probability: ' + ctx.parsed.y.toFixed(4),
-                                title: items => 'Prevalence: ' + items[0].label
+                                label: ctx => `Posterior: ${ctx.parsed.y.toFixed(4)}`,
+                                title: items => `Prevalence: ${items[0].parsed.x.toFixed(1)}%`
                             }
                         }
                     }
