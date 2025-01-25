@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequential Testing Prevalence Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="p-4">
+    <div class="w-full max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-semibold">Sequential Testing Prevalence Calculator</h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Inputs Column -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Total Samples (N)</label>
+                            <input type="number" id="N" class="w-full p-2 border rounded" value="200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">First Test Positives</label>
+                            <input type="number" id="npos" class="w-full p-2 border rounded" value="15">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Retested Samples (N2)</label>
+                            <input type="number" id="N2" class="w-full p-2 border rounded" value="15">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Second Test Positives</label>
+                            <input type="number" id="npos2" class="w-full p-2 border rounded" value="12">
+                        </div>
+                    </div>
+
+                    <!-- Results Column -->
+                    <div class="space-y-4">
+                        <div id="results" class="p-4 bg-blue-50 rounded-lg hidden">
+                            <h3 class="font-medium mb-2">Results:</h3>
+                            <p>Estimated Prevalence: <span id="prevalence">0.0</span>% 
+                                <span class="text-gray-600 text-sm ml-2">(95% CrI: <span id="ciLower">0.0</span>% - <span id="ciUpper">0.0</span>%)</span>
+                            </p>
+                            <p class="mt-2">First Test:</p>
+                            <p class="ml-4">PPV: <span id="ppv1">0.0</span>%
+                                <span class="text-gray-600 text-sm ml-2">(95% CrI: <span id="ppv1Lower">0.0</span>% - <span id="ppv1Upper">0.0</span>%)</span>
+                            </p>
+                            <p class="mt-2">Sequential algorithm:</p>
+                            <p class="ml-4">PPV: <span id="ppv2">0.0</span>%
+                                <span class="text-gray-600 text-sm ml-2">(95% CrI: <span id="ppv2Lower">0.0</span>% - <span id="ppv2Upper">0.0</span>%)</span>
+                            </p>
+                            <p class="text-sm text-gray-600 mt-2" id="inputSummary"></p>
+                        </div>
+                        <div class="flex items-start gap-2 p-4 bg-yellow-50 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-yellow-600 mt-1">
+                                <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <p class="text-sm">This is a simplified calculation to show the intuition behind the model. Se and Sp are assumed to be fixed (Test 1: Se = 92% & Sp = 95%; Test 2 = Se = 91% & Sp = 96%). The full Stan model includes more complex priors and uncertainty estimation.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chart Container -->
+                <div class="h-64 mt-6">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chartInstance = null;
+
+        function calculateCredibleInterval(points, prob = 0.95) {
+            // Sort points by parameter value (prevalence)
+            const sorted = [...points].sort((a, b) => a.prevalence - b.prevalence);
+            
+            // Calculate cumulative probabilities
+            const cumProbs = [];
+            let total = 0;
+            for (const pt of sorted) {
+                total += pt.posterior;
+                cumProbs.push(total);
+            }
+
+            // Find interval bounds with linear interpolation
+            const findBound = (target) => {
+                for (let i = 0; i < cumProbs.length; i++) {
+                    if (cumProbs[i] >= target) {
+                        const prevIdx = Math.max(0, i-1);
+                        const weight = (target - cumProbs[prevIdx]) / 
+                                     (cumProbs[i] - cumProbs[prevIdx]);
+                        return sorted[prevIdx].prevalence + 
+                              (sorted[i].prevalence - sorted[prevIdx].prevalence) * weight;
+                    }
+                }
+                return sorted[sorted.length-1].prevalence;
+            };
+
+            return {
+                lower: findBound((1 - prob) / 2),
+                upper: findBound(1 - (1 - prob) / 2)
+            };
+        }
+
+        function calculatePosterior(N, npos, N2, npos2) {
+            const alpha = 1;
+            const beta = 1;
+            const Se = 0.92;
+            const Sp = 0.95;
+            const Se2 = 0.91;
+            const Sp2 = 0.96;
+
+            // Use finer grid resolution (0.1% increments)
+            const RESOLUTION = 1001;
+            const points = Array.from({length: RESOLUTION}, (_, i) => {
+                const prev = i / (RESOLUTION - 1); // 0-1 inclusive
+                
+                // First test likelihood
+                const Pa1 = Se * prev + (1 - Sp) * (1 - prev);
+                const likelihood1 = Math.pow(Pa1, npos) * Math.pow(1 - Pa1, N - npos);
+                
+                // Calculate PPV after first test
+                const PPV1 = (Se * prev) / (Se * prev + (1 - Sp) * (1 - prev));
+                
+                // Second test likelihood
+                const Pa2 = Se2 * PPV1 + (1 - Sp2) * (1 - PPV1);
+                const likelihood2 = N2 > 0 ? 
+                    Math.pow(Pa2, npos2) * Math.pow(1 - Pa2, N2 - npos2) : 1;
+                
+                // Combine likelihoods and prior
+                const prior = Math.pow(prev, alpha-1) * Math.pow(1-prev, beta-1);
+                const posterior = likelihood1 * likelihood2 * prior;
+                
+                return { prevalence: prev, posterior, Pa1, Pa2, PPV1 };
+            });
+
+            // Normalize posterior probabilities
+            const sum = points.reduce((acc, pt) => acc + pt.posterior, 0);
+            points.forEach(pt => pt.posterior /= sum);
+
+            // Calculate PPV distributions and credible intervals
+            const ppvDistribution = points.map(pt => ({
+                prevalence: pt.PPV1,
+                posterior: pt.posterior
+            }));
+
+            const ppv2Distribution = points.map(pt => {
+                const ppv2 = (Se2 * pt.PPV1) / (Se2 * pt.PPV1 + (1 - Sp2) * (1 - pt.PPV1));
+                return { prevalence: ppv2, posterior: pt.posterior };
+            });
+
+            const expectedPPV = ppvDistribution.reduce((acc, pt) => acc + pt.prevalence * pt.posterior, 0);
+            const expectedPPV2 = ppv2Distribution.reduce((acc, pt) => acc + pt.prevalence * pt.posterior, 0);
+
+            const ppvCI = calculateCredibleInterval(ppvDistribution);
+            const ppv2CI = calculateCredibleInterval(ppv2Distribution);
+            const estimatedPrevalence = points.reduce((acc, pt) => acc + pt.prevalence * pt.posterior, 0);
+            const credibleInterval = calculateCredibleInterval(points);
+            
+            return {
+                expectedPPV,
+                expectedPPV2,
+                ppvCI,
+                ppv2CI,
+                points,
+                estimatedPrevalence,
+                credibleInterval
+            };
+        }
+
+        function updateChart(points) {
+            const ctx = document.getElementById('chart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: points.map(p => (p.prevalence * 100).toFixed(1) + '%'),
+                    datasets: [{
+                        label: 'Posterior Probability',
+                        data: points.map(p => p.posterior),
+                        borderColor: '#2563eb',
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'True Prevalence' },
+                            ticks: { callback: value => value + '%' }
+                        },
+                        y: { title: { display: true, text: 'Posterior Probability' } }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => 'Posterior Probability: ' + ctx.parsed.y.toFixed(4),
+                                title: items => 'Prevalence: ' + items[0].label
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function calculateResults() {
+            const inputs = {
+                N: parseInt(document.getElementById('N').value) || 0,
+                npos: parseInt(document.getElementById('npos').value) || 0,
+                N2: parseInt(document.getElementById('N2').value) || 0,
+                npos2: parseInt(document.getElementById('npos2').value) || 0
+            };
+
+            const results = calculatePosterior(inputs.N, inputs.npos, inputs.N2, inputs.npos2);
+            
+            // Update results display
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('prevalence').textContent = (results.estimatedPrevalence * 100).toFixed(1);
+            document.getElementById('ciLower').textContent = (results.credibleInterval.lower * 100).toFixed(1);
+            document.getElementById('ciUpper').textContent = (results.credibleInterval.upper * 100).toFixed(1);
+            document.getElementById('ppv1').textContent = (results.expectedPPV * 100).toFixed(1);
+            document.getElementById('ppv1Lower').textContent = (results.ppvCI.lower * 100).toFixed(1);
+            document.getElementById('ppv1Upper').textContent = (results.ppvCI.upper * 100).toFixed(1);
+            document.getElementById('ppv2').textContent = (results.expectedPPV2 * 100).toFixed(1);
+            document.getElementById('ppv2Lower').textContent = (results.ppv2CI.lower * 100).toFixed(1);
+            document.getElementById('ppv2Upper').textContent = (results.ppv2CI.upper * 100).toFixed(1);
+            document.getElementById('inputSummary').textContent = 
+                `N=${inputs.N}, pos1=${inputs.npos}, N2=${inputs.N2}, pos2=${inputs.npos2}`;
+
+            updateChart(results.points);
+        }
+
+        // Initial calculation
+        calculateResults();
+
+        // Add event listeners to all inputs
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', calculateResults);
+        });
+    </script>
+</body>
+</html>
