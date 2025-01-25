@@ -3,20 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Histoplasmosis Research</title>
+    <title>Histoplasmosis Research Repository</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #f0f2f5, #d9e2ec);
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            padding: 20px 0;
+        }
+        nav {
+            margin: 20px 0;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+        }
+        a {
+            text-decoration: none;
+            color: #007bff;
+            font-size: 18px;
+            transition: color 0.3s ease;
+        }
+        a:hover {
+            color: #0056b3;
+        }
+        #visualization-window {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+        }
+    </style>
+    <script>
+        function showVisualization(link) {
+            document.getElementById('visualization-window').style.display = 'block';
+            document.getElementById('viewer').src = link;
+        }
+    </script>
 </head>
 <body>
     <h1>Histoplasmosis Research Repository</h1>
     <nav>
         <ul>
-            <li><a href="histo_sequential_testing.html">Sequential Testing simulation (HTML)</a></li>
-            <li><a href="Stan_model_visualization.html">Model visualization (HTML)</a></li>
-            
-            
-            <li><a href="histo_seq_testing.R">Sequential Testing Model (R)</a></li>
-            <li><a href="histo_treat_Markov_model.R">Markov Model Treatment (R)</a></li>
-            <li><a href="model_seq_pos_retested_binom.stan">Stan Code Model</a></li>
+            <li><a href="histo_sequential_testing.html">Sequential Testing Simulation (HTML)</a></li>
+            <li><a href="Stan_model_visualization.html">Model Visualization (HTML)</a></li>
+            <li><a href="#" onclick="showVisualization('histo_seq_testing.R')">Sequential Testing Model (R)</a></li>
+            <li><a href="#" onclick="showVisualization('histo_treat_Markov_model.R')">Markov Model Treatment (R)</a></li>
+            <li><a href="#" onclick="showVisualization('model_seq_pos_retested_binom.stan')">Stan Code Model</a></li>
         </ul>
     </nav>
+    <div id="visualization-window">
+        <iframe id="viewer"></iframe>
+    </div>
 </body>
 </html>
