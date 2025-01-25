@@ -176,7 +176,7 @@
 
             // Convert to Chart.js compatible format with x/y values
             const chartData = points.map(p => ({
-                x: p.prevalence * 100,  // Convert to percentage
+                x: p.prevalence,  // Convert to percentage
                 y: p.posterior
             }));
 
