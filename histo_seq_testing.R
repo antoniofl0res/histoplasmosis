@@ -8,17 +8,6 @@ library(bayesboot)
 library(gt)
 
 
-
-#cmdstanr::cmdstan_path()
-#set_cmdstan_path("C:/Users/Antonio Flores/OneDrive - MSF/Documents/.cmdstan/cmdstan-2.34.1")
-#Sys.getenv()
-#Sys.setenv(HOME="C:/Users/Antonio/Documents")
-#Sys.setenv(R_RTOOLS44_PATH = "c:/rtools42/x86_64-w64-mingw32.static.posix/bin;c:/rtools42/usr/bin")
-#Sys.setenv(HOME="C:/Users/Antonio/OneDrive - MSF/Documents")
-
-getwd()
-
-
 ### DATA LIST #####
 
 # Store data in a list for passing to Stan models
@@ -31,42 +20,8 @@ data_list <- list(
   N3 = 0,
   npos3 = 0
 )
-##### STAN MODEL - ONE TEST ####
-# Fit the Stan model for one test using the provided data
-hist.mod = rstan::stan("model_one_test.stan", data=data_list, 
-                chains=4, cores=parallel::detectCores(), 
-                iter=6e3, warmup=1e3)
 
-##### MODEL OUTPUT ####
-# Display summary statistics and plots for the model output
-precis(hist.mod, prob = .95, depth=3)
-plot(precis(hist.mod, prob = .95))
-
-# Uncomment to display traceplot and trankplot
-#traceplot(hist.mod)
-#trankplot(hist.mod)
-
-# Extract posterior samples from the model
-post_hist <- extract(hist.mod) |> as.data.frame()
-
-# Summarize key statistics from the posterior samples
-list(
-  N = c(Total=data_list$N, pos1=data_list$npos),
-  expected_PPV = round(mean(post_hist$PPV)*100, 1), 
-  hdi_PPV = round(hdi(post_hist$PPV)*100, 1), 
-  prob_50 = mean(post_hist$PPV>.5)
-)
-
-# Prepare data for display
-post_hist = post_hist[, 1:ncol(post_hist)-1]
-
-# Generate a table for output display
-(output = round(as.data.frame(t(rbind(expected=colMeans(post_hist), 
-                                      HDInterval::hdi(post_hist)))),3))
-
-data.frame(cbind(parameters=colnames(post_hist), output)) |> gt()
-
-### STAN SEQ MODEL ####
+### STAN SEQUENTIAL MODEL ####
 
 # Fit the sequential Stan model using the provided data
 seq_model <- rstan::stan(file="model_seq_pos_retested_binom.stan", 
@@ -74,10 +29,6 @@ seq_model <- rstan::stan(file="model_seq_pos_retested_binom.stan",
                          iter=6e3, warmup=1e3)
 
 
-#traceplot(seq_model)
-
-# Display summary statistics for the sequential model
-#precis(seq_model, prob=.95)
 
 # Extract posterior samples from the sequential model
 post_seq <- rstan::extract(seq_model) |> as.data.frame()
@@ -129,6 +80,3 @@ post.check(df=post_seq, total=data_list$N, pos_obs = data_list$npos, label = "Al
 # Check observed vs. expected positive samples for oositive samples retested in the 2nd test
 post.check(df=post_seq, total=data_list$N2, pos_obs = data_list$npos2, prop = "Pa2", label = "Positive samples retested - 2nd test")
 
-
-# Check observed vs. expected positive samples for negative samples retested in the 2nd test
-#post.check(df=post_seq, total=data_list$N3, pos_obs = data_list$npos3, prop = "Pa3", label = "Negative samples retested - 2nd test")
