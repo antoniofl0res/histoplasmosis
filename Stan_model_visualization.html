@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sequential Testing - Prevalence Calculator</title>
+    <title>Sequential Testing Prevalence Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -46,10 +46,12 @@
                             <p class="ml-4">PPV: <span id="ppv1">0.0</span>%
                                 <span class="text-gray-600 text-sm ml-2">(95% CrI: <span id="ppv1Lower">0.0</span>% - <span id="ppv1Upper">0.0</span>%)</span>
                             </p>
+                            <p class="ml-4">Probability PPV > 50%: <span id="ppv1_gt_50">0.0</span>%</p>
                             <p class="mt-2">Sequential algorithm:</p>
                             <p class="ml-4">PPV: <span id="ppv2">0.0</span>%
                                 <span class="text-gray-600 text-sm ml-2">(95% CrI: <span id="ppv2Lower">0.0</span>% - <span id="ppv2Upper">0.0</span>%)</span>
                             </p>
+                            <p class="ml-4">Probability PPV > 50%: <span id="ppv2_gt_50">0.0</span>%</p>
                             <p class="text-sm text-gray-600 mt-2" id="inputSummary"></p>
                         </div>
                         <div id="error-messages" class="p-4 bg-red-50 rounded-lg hidden">
@@ -155,6 +157,12 @@
                 return { prevalence: ppv2, posterior: pt.posterior };
             });
 
+            // Calculate probability that PPV > 50%
+            const ppv1_gt_50 = ppvDistribution.reduce((acc, pt) => 
+                acc + (pt.prevalence > 0.5 ? pt.posterior : 0), 0);
+            const ppv2_gt_50 = ppv2Distribution.reduce((acc, pt) => 
+                acc + (pt.prevalence > 0.5 ? pt.posterior : 0), 0);
+
             const expectedPPV = ppvDistribution.reduce((acc, pt) => acc + pt.prevalence * pt.posterior, 0);
             const expectedPPV2 = ppv2Distribution.reduce((acc, pt) => acc + pt.prevalence * pt.posterior, 0);
 
@@ -170,7 +178,9 @@
                 ppv2CI,
                 points,
                 estimatedPrevalence,
-                credibleInterval
+                credibleInterval,
+                ppv1_gt_50,
+                ppv2_gt_50
             };
         }
 
@@ -271,6 +281,8 @@
             document.getElementById('ppv2').textContent = (results.expectedPPV2 * 100).toFixed(1);
             document.getElementById('ppv2Lower').textContent = (results.ppv2CI.lower * 100).toFixed(1);
             document.getElementById('ppv2Upper').textContent = (results.ppv2CI.upper * 100).toFixed(1);
+            document.getElementById('ppv1_gt_50').textContent = (results.ppv1_gt_50 * 100).toFixed(1);
+            document.getElementById('ppv2_gt_50').textContent = (results.ppv2_gt_50 * 100).toFixed(1);
             document.getElementById('inputSummary').textContent = 
                 `N=${inputs.N}, pos1=${inputs.npos}, N2=${inputs.N2}, pos2=${inputs.npos2}`;
 
