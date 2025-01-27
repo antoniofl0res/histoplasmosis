@@ -172,15 +172,17 @@
                 estimatedPrevalence,
                 credibleInterval,
                 ppv1_gt_50,
-                ppv2_gt_50
+                ppv2_gt_50,
+                ppvDistribution,
+                ppv2Distribution
             };
         }
 
-        function updateChart(points) {
+        function updateChart(ppvDistribution) {
             const ctx = document.getElementById('chart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
 
-            const chartData = points.map(p => ({
+            const chartData = ppvDistribution.map(p => ({
                 x: p.prevalence * 100,
                 y: p.posterior
             }));
@@ -189,7 +191,7 @@
                 type: 'line',
                 data: {
                     datasets: [{
-                        label: 'Posterior Probability',
+                        label: 'PPV (first test) Probability Distribution',
                         data: chartData,
                         borderColor: '#2563eb',
                         tension: 0.4,
@@ -204,7 +206,7 @@
                             type: 'linear',
                             title: {
                                 display: true,
-                                text: 'True Prevalence (%)'
+                                text: 'Positive Predictive Value (PPV) (%)'
                             },
                             min: 0,
                             max: 100,
@@ -215,15 +217,15 @@
                         y: { 
                             title: { 
                                 display: true, 
-                                text: 'Posterior Probability' 
+                                text: 'Probability Density' 
                             } 
                         }
                     },
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: ctx => `Posterior: ${ctx.parsed.y.toFixed(4)}`,
-                                title: items => `Prevalence: ${items[0].parsed.x.toFixed(1)}%`
+                                label: ctx => `Probability: ${ctx.parsed.y.toFixed(4)}`,
+                                title: items => `PPV: ${items[0].parsed.x.toFixed(1)}%`
                             }
                         }
                     }
@@ -274,7 +276,7 @@
             document.getElementById('ppv2_gt_50').textContent = (results.ppv2_gt_50 * 100).toFixed(1);
             document.getElementById('inputSummary').textContent = `N=${inputs.N}, pos1=${inputs.npos}, N2=${inputs.N2}, pos2=${inputs.npos2}`;
 
-            updateChart(results.points);
+            updateChart(results.ppvDistribution);
         }
 
         // Initial calculation
