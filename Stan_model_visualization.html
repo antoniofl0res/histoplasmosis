@@ -10,8 +10,13 @@
 <body class="p-4">
     <div class="w-full max-w-4xl mx-auto">
         <div class="bg-white rounded-lg shadow-sm">
-            <div class="p-6 border-b">
+            <!-- Header with buttons -->
+            <div class="p-6 border-b flex justify-between items-center">
                 <h2 class="text-xl font-semibold">Sequential Testing Prevalence Calculator</h2>
+                <div class="space-x-2">
+                    <button onclick="resetForm()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-700">Reset</button>
+                    <a href="index.html" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded text-white">Back to Main</a>
+                </div>
             </div>
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -78,11 +83,17 @@
     <script>
         let chartInstance = null;
 
+        // Reset function
+        function resetForm() {
+            document.getElementById('N').value = '200';
+            document.getElementById('npos').value = '15';
+            document.getElementById('N2').value = '15';
+            document.getElementById('npos2').value = '12';
+            calculateResults();
+        }
+
         function calculateCredibleInterval(points, prob = 0.95) {
-            // Sort points by parameter value (prevalence)
             const sorted = [...points].sort((a, b) => a.prevalence - b.prevalence);
-            
-            // Calculate cumulative probabilities
             const cumProbs = [];
             let total = 0;
             for (const pt of sorted) {
@@ -90,15 +101,12 @@
                 cumProbs.push(total);
             }
 
-            // Find interval bounds with linear interpolation
             const findBound = (target) => {
                 for (let i = 0; i < cumProbs.length; i++) {
                     if (cumProbs[i] >= target) {
                         const prevIdx = Math.max(0, i-1);
-                        const weight = (target - cumProbs[prevIdx]) / 
-                                     (cumProbs[i] - cumProbs[prevIdx]);
-                        return sorted[prevIdx].prevalence + 
-                              (sorted[i].prevalence - sorted[prevIdx].prevalence) * weight;
+                        const weight = (target - cumProbs[prevIdx]) / (cumProbs[i] - cumProbs[prevIdx]);
+                        return sorted[prevIdx].prevalence + (sorted[i].prevalence - sorted[prevIdx].prevalence) * weight;
                     }
                 }
                 return sorted[sorted.length-1].prevalence;
@@ -118,35 +126,22 @@
             const Se2 = 0.91;
             const Sp2 = 0.96;
 
-            // Use finer grid resolution (0.1% increments)
             const RESOLUTION = 1001;
             const points = Array.from({length: RESOLUTION}, (_, i) => {
-                const prev = i / (RESOLUTION - 1); // 0-1 inclusive
-                
-                // First test likelihood
+                const prev = i / (RESOLUTION - 1);
                 const Pa1 = Se * prev + (1 - Sp) * (1 - prev);
                 const likelihood1 = Math.pow(Pa1, npos) * Math.pow(1 - Pa1, N - npos);
-                
-                // Calculate PPV after first test
                 const PPV1 = (Se * prev) / (Se * prev + (1 - Sp) * (1 - prev));
-                
-                // Second test likelihood
                 const Pa2 = Se2 * PPV1 + (1 - Sp2) * (1 - PPV1);
-                const likelihood2 = N2 > 0 ? 
-                    Math.pow(Pa2, npos2) * Math.pow(1 - Pa2, N2 - npos2) : 1;
-                
-                // Combine likelihoods and prior
+                const likelihood2 = N2 > 0 ? Math.pow(Pa2, npos2) * Math.pow(1 - Pa2, N2 - npos2) : 1;
                 const prior = Math.pow(prev, alpha-1) * Math.pow(1-prev, beta-1);
                 const posterior = likelihood1 * likelihood2 * prior;
-                
                 return { prevalence: prev, posterior, Pa1, Pa2, PPV1 };
             });
 
-            // Normalize posterior probabilities
             const sum = points.reduce((acc, pt) => acc + pt.posterior, 0);
             points.forEach(pt => pt.posterior /= sum);
 
-            // Calculate PPV distributions and credible intervals
             const ppvDistribution = points.map(pt => ({
                 prevalence: pt.PPV1,
                 posterior: pt.posterior
@@ -157,11 +152,8 @@
                 return { prevalence: ppv2, posterior: pt.posterior };
             });
 
-            // Calculate probability that PPV > 50%
-            const ppv1_gt_50 = ppvDistribution.reduce((acc, pt) => 
-                acc + (pt.prevalence > 0.5 ? pt.posterior : 0), 0);
-            const ppv2_gt_50 = ppv2Distribution.reduce((acc, pt) => 
-                acc + (pt.prevalence > 0.5 ? pt.posterior : 0), 0);
+            const ppv1_gt_50 = ppvDistribution.reduce((acc, pt) => acc + (pt.prevalence > 0.5 ? pt.posterior : 0), 0);
+            const ppv2_gt_50 = ppv2Distribution.reduce((acc, pt) => acc + (pt.prevalence > 0.5 ? pt.posterior : 0), 0);
 
             const expectedPPV = ppvDistribution.reduce((acc, pt) => acc + pt.prevalence * pt.posterior, 0);
             const expectedPPV2 = ppv2Distribution.reduce((acc, pt) => acc + pt.prevalence * pt.posterior, 0);
@@ -188,9 +180,8 @@
             const ctx = document.getElementById('chart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
 
-            // Convert to Chart.js compatible format with x/y values
             const chartData = points.map(p => ({
-                x: p.prevalence * 100,  // Convert to percentage
+                x: p.prevalence * 100,
                 y: p.posterior
             }));
 
@@ -250,7 +241,6 @@
 
             const errors = [];
 
-            // Validation rules
             if (inputs.N2 > inputs.npos) {
                 errors.push("Retested positive samples (N2) cannot be greater than first test positives.");
             }
@@ -270,7 +260,6 @@
 
             const results = calculatePosterior(inputs.N, inputs.npos, inputs.N2, inputs.npos2);
             
-            // Update results display
             document.getElementById('results').classList.remove('hidden');
             document.getElementById('prevalence').textContent = (results.estimatedPrevalence * 100).toFixed(1);
             document.getElementById('ciLower').textContent = (results.credibleInterval.lower * 100).toFixed(1);
@@ -283,8 +272,7 @@
             document.getElementById('ppv2Upper').textContent = (results.ppv2CI.upper * 100).toFixed(1);
             document.getElementById('ppv1_gt_50').textContent = (results.ppv1_gt_50 * 100).toFixed(1);
             document.getElementById('ppv2_gt_50').textContent = (results.ppv2_gt_50 * 100).toFixed(1);
-            document.getElementById('inputSummary').textContent = 
-                `N=${inputs.N}, pos1=${inputs.npos}, N2=${inputs.N2}, pos2=${inputs.npos2}`;
+            document.getElementById('inputSummary').textContent = `N=${inputs.N}, pos1=${inputs.npos}, N2=${inputs.N2}, pos2=${inputs.npos2}`;
 
             updateChart(results.points);
         }
